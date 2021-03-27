@@ -34,6 +34,16 @@ class BitdamSeekBar: View {
             invalidate()
         }
 
+    private val minValue: Int
+
+    var maxValue: Int
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    private var valueBoundaryList: MutableList<Float>? = null
+
     private var thumbRect: Rect? = null
 
     private var onProgressChangeListener: ((Int) -> Unit)? = null
@@ -43,6 +53,8 @@ class BitdamSeekBar: View {
     init {
         thumbRadius = 20.dpToPx()
         verticalOffset = 25.dpToPx()
+        minValue = 0
+        maxValue = 200
 
         // Log.d("SEEKBAR_TOUCH", "thumbRect: 좌우 __ ${left} ~ ${right}, 상하 __ ${top} ~ ${bottom}")
     }
@@ -118,41 +130,57 @@ class BitdamSeekBar: View {
 
                 // 3.coerceIn(3..4)
                 MotionEvent.ACTION_MOVE -> {
-                    // Log.d("SEEKBAR_TOUCH", "RECT: 좌우 __ ${thumbRect?.left} ~ ${thumbRect?.right}, 상하 __ ${thumbRect?.top} ~ ${thumbRect?.bottom}")
-                    thumbRect?.let { thumbRect ->
-                        val (x, y) = event.x to event.y + top
+                    if(valueBoundaryList == null) {
+                        valueBoundaryList = mutableListOf()
 
-                        Log.d("SEEKBAR_TOUCH", "뷰의 상하 __ ${top} ~ ${bottom}")
-                        Log.d("SEEKBAR_TOUCH", "실제 클릭: x: ${event.x}, y: ${event.y}")
+                        val start = top + verticalOffset
+                        val end = bottom - verticalOffset
+                        val interval = (end - start) / maxValue
 
-                        when {
-                            y < top + verticalOffset -> {
-                                this.thumbRect = Rect(
-                                    width / 2 - thumbRadius.toInt(),
-                                    (top + verticalOffset - thumbRadius).toInt(),
-                                    width / 2 + thumbRadius.toInt(),
-                                    (top + verticalOffset + thumbRadius).toInt()
-                                )
-                            }
+                        for(i in minValue .. maxValue) {
+                            valueBoundaryList?.add(start + interval * i)
+                        }
 
-                            y in top + verticalOffset .. bottom - verticalOffset-> {
-                                this.thumbRect = Rect(
-                                    width / 2 - thumbRadius.toInt(),
-                                    (event.y - thumbRadius).toInt(),
-                                    width / 2 + thumbRadius.toInt(),
-                                    (event.y + thumbRadius).toInt()
-                                )
-                            }
-
-                            else -> {
-                                this.thumbRect = Rect(
-                                    width / 2 - thumbRadius.toInt(),
-                                    (bottom - verticalOffset - thumbRadius).toInt(),
-                                    width / 2 + thumbRadius.toInt(),
-                                    (bottom - verticalOffset + thumbRadius).toInt()
-                                )
+                        valueBoundaryList?.let { list ->
+                            if(list[maxValue] != end) {
+                                list[maxValue] = end
                             }
                         }
+                    }
+
+                    // Log.d("SEEKBAR_TOUCH", "RECT: 좌우 __ ${thumbRect?.left} ~ ${thumbRect?.right}, 상하 __ ${thumbRect?.top} ~ ${thumbRect?.bottom}")
+                    thumbRect?.let { thumbRect ->
+                        var (x, y) = event.x to event.y + top
+
+                        // Log.d("SEEKBAR_TOUCH", "뷰의 상하 __ ${top} ~ ${bottom}")
+                        // Log.d("SEEKBAR_TOUCH", "실제 클릭: x: ${event.x}, y: ${event.y}")
+
+                        if(y <= top + verticalOffset) {
+                            y = top + verticalOffset
+                        } else if(y >= bottom - verticalOffset) {
+                            y = bottom - verticalOffset
+                        } else {
+                            valueBoundaryList?.let { valueBoundaryList ->
+                                for(i in minValue .. maxValue) {
+                                    if(i != maxValue) {
+                                        if(y >= valueBoundaryList[i] && y < valueBoundaryList[i + 1]) {
+                                            y = valueBoundaryList[i]
+                                            break
+                                        }
+                                    } else {
+                                        y = bottom - verticalOffset
+                                    }
+                                }
+                            }
+
+                        }
+
+                        this.thumbRect = Rect(
+                            width / 2 - thumbRadius.toInt(),
+                            (y - top - thumbRadius).toInt(),
+                            width / 2 + thumbRadius.toInt(),
+                            (y - top + thumbRadius).toInt()
+                        )
 
                         invalidate()
                     }
