@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import kotlin.math.min
 
 class BitdamSeekBar: View {
 
@@ -45,9 +46,10 @@ class BitdamSeekBar: View {
     private var valueBoundaryList: MutableList<Float>? = null
 
     private var thumbRect: Rect? = null
+    private var thumbAvailable = false
 
     private var onProgressChangeListener: ((Int) -> Unit)? = null
-    private var onPressListener: ((Int) -> Unit)? = null
+    private var onPressListener: (() -> Unit)? = null
     private var onReleaseListener: ((Int) -> Unit)? = null
 
     init {
@@ -55,7 +57,7 @@ class BitdamSeekBar: View {
         verticalOffset = 25.dpToPx()
         minValue = 0
         maxValue = 200
-
+        thumbAvailable = false
         // Log.d("SEEKBAR_TOUCH", "thumbRect: 좌우 __ ${left} ~ ${right}, 상하 __ ${top} ~ ${bottom}")
     }
 
@@ -106,7 +108,7 @@ class BitdamSeekBar: View {
         this.onProgressChangeListener = listener
     }
 
-    fun setOnPressListener(listener: ((Int) -> Unit)?) {
+    fun setOnPressListener(listener: (() -> Unit)?) {
         this.onPressListener = listener
     }
 
@@ -124,12 +126,15 @@ class BitdamSeekBar: View {
                     thumbRect?.let { thumbRect ->
                         if(thumbRect.contains(event.x.toInt(), event.y.toInt())) {
                             Toast.makeText(context, "ACTION_DOWN", Toast.LENGTH_SHORT).show()
+                            thumbAvailable = true
                         }
                     }
+
                 }
 
                 // 3.coerceIn(3..4)
                 MotionEvent.ACTION_MOVE -> {
+                    // region makeBoundaryList
                     if(valueBoundaryList == null) {
                         valueBoundaryList = mutableListOf()
 
@@ -147,46 +152,54 @@ class BitdamSeekBar: View {
                             }
                         }
                     }
+                    // endregion
 
                     // Log.d("SEEKBAR_TOUCH", "RECT: 좌우 __ ${thumbRect?.left} ~ ${thumbRect?.right}, 상하 __ ${thumbRect?.top} ~ ${thumbRect?.bottom}")
-                    thumbRect?.let { thumbRect ->
-                        var (x, y) = event.x to event.y + top
+                    if(thumbAvailable) {
+                        thumbRect?.let { thumbRect ->
+                            var (x, y) = event.x to event.y + top
 
-                        // Log.d("SEEKBAR_TOUCH", "뷰의 상하 __ ${top} ~ ${bottom}")
-                        // Log.d("SEEKBAR_TOUCH", "실제 클릭: x: ${event.x}, y: ${event.y}")
+                            // Log.d("SEEKBAR_TOUCH", "뷰의 상하 __ ${top} ~ ${bottom}")
+                            // Log.d("SEEKBAR_TOUCH", "실제 클릭: x: ${event.x}, y: ${event.y}")
 
-                        if(y <= top + verticalOffset) {
-                            y = top + verticalOffset
-                        } else if(y >= bottom - verticalOffset) {
-                            y = bottom - verticalOffset
-                        } else {
-                            valueBoundaryList?.let { valueBoundaryList ->
-                                for(i in minValue .. maxValue) {
-                                    if(i != maxValue) {
-                                        if(y >= valueBoundaryList[i] && y < valueBoundaryList[i + 1]) {
-                                            y = valueBoundaryList[i]
-                                            break
+                            if(y <= top + verticalOffset) {
+                                y = top + verticalOffset
+                                onProgressChangeListener?.invoke(maxValue)
+                            } else if(y >= bottom - verticalOffset) {
+                                y = bottom - verticalOffset
+                                onProgressChangeListener?.invoke(minValue)
+                            } else {
+                                valueBoundaryList?.let { valueBoundaryList ->
+                                    for(i in minValue .. maxValue) {
+                                        if(i != maxValue) {
+                                            if(y >= valueBoundaryList[i] && y < valueBoundaryList[i + 1]) {
+                                                y = valueBoundaryList[i]
+                                                onProgressChangeListener?.invoke(maxValue - i)
+                                                break
+                                            }
+                                        } else {
+                                            y = bottom - verticalOffset
+                                            onProgressChangeListener?.invoke(minValue)
                                         }
-                                    } else {
-                                        y = bottom - verticalOffset
                                     }
                                 }
+
                             }
 
+                            this.thumbRect = Rect(
+                                width / 2 - thumbRadius.toInt(),
+                                (y - top - thumbRadius).toInt(),
+                                width / 2 + thumbRadius.toInt(),
+                                (y - top + thumbRadius).toInt()
+                            )
+
+                            invalidate()
                         }
-
-                        this.thumbRect = Rect(
-                            width / 2 - thumbRadius.toInt(),
-                            (y - top - thumbRadius).toInt(),
-                            width / 2 + thumbRadius.toInt(),
-                            (y - top + thumbRadius).toInt()
-                        )
-
-                        invalidate()
                     }
                 }
 
                 MotionEvent.ACTION_UP -> {
+                    thumbAvailable = false
                     view.performClick()
                 }
             }

@@ -19,13 +19,15 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.apply {
-
+            seekbar.setOnProgressChangeListener {
+                tvValue.text = it.toString()
+            }
         }
 
-        testTouchListener()
+        // testTouchListener()
     }
 
-    private fun testTouchListener() {
+    /*private fun testTouchListener() {
         binding.root.setOnTouchListener { view, event ->
             when(event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -46,5 +48,5 @@ class MainActivity : AppCompatActivity() {
             }
             true
         }
-    }
+    }*/
 }
