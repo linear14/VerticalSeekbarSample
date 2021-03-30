@@ -37,4 +37,13 @@
         android:background="@color/white"
         app:layout_constraintTop_toBottomOf="@id/seekbar"/>
 
+    <Button
+        android:id="@+id/test100"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="100레벨"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_margin="16dp"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

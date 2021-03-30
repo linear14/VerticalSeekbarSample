@@ -22,9 +22,18 @@ class MainActivity : AppCompatActivity() {
             seekbar.setOnProgressChangeListener {
                 tvValue.text = it.toString()
             }
+            seekbar.progress = 50
+
+            // test100.setOnClickListener { seekbar.setThumbLevel(100) }
         }
 
         // testTouchListener()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // binding.seekbar.setThumbLevel(0)
     }
 
     /*private fun testTouchListener() {

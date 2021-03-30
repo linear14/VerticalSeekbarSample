@@ -23,6 +23,8 @@ class BitdamSeekBar: View {
         flags = Paint.ANTI_ALIAS_FLAG
     }
 
+    private var isInit = true
+
     var thumbRadius: Float
         set(value) {
             field = value
@@ -45,12 +47,15 @@ class BitdamSeekBar: View {
 
     private var valueBoundaryList: MutableList<Float>? = null
 
+    private var defaultProgress: Int = 0
+    var progress: Int? = null
+
     private var thumbRect: Rect? = null
     private var thumbAvailable = false
 
     private var onProgressChangeListener: ((Int) -> Unit)? = null
     private var onPressListener: (() -> Unit)? = null
-    private var onReleaseListener: ((Int) -> Unit)? = null
+    private var onReleaseListener: (() -> Unit)? = null
 
     init {
         thumbRadius = 20.dpToPx()
@@ -58,6 +63,7 @@ class BitdamSeekBar: View {
         minValue = 0
         maxValue = 200
         thumbAvailable = false
+        isInit = true
         // Log.d("SEEKBAR_TOUCH", "thumbRect: 좌우 __ ${left} ~ ${right}, 상하 __ ${top} ~ ${bottom}")
     }
 
@@ -70,6 +76,11 @@ class BitdamSeekBar: View {
         drawThumb(canvas)
 
         activateThumbTouchListener()
+
+        if(isInit) {
+            setThumbLevel(progress?:defaultProgress)
+            isInit = false
+        }
     }
 
     private fun drawBar(canvas: Canvas) {
@@ -112,7 +123,7 @@ class BitdamSeekBar: View {
         this.onPressListener = listener
     }
 
-    fun setOnReleaseListener(listener: ((Int) -> Unit)?) {
+    fun setOnReleaseListener(listener: (() -> Unit)?) {
         this.onReleaseListener = listener
     }
 
@@ -134,25 +145,9 @@ class BitdamSeekBar: View {
 
                 // 3.coerceIn(3..4)
                 MotionEvent.ACTION_MOVE -> {
-                    // region makeBoundaryList
                     if(valueBoundaryList == null) {
-                        valueBoundaryList = mutableListOf()
-
-                        val start = top + verticalOffset
-                        val end = bottom - verticalOffset
-                        val interval = (end - start) / maxValue
-
-                        for(i in minValue .. maxValue) {
-                            valueBoundaryList?.add(start + interval * i)
-                        }
-
-                        valueBoundaryList?.let { list ->
-                            if(list[maxValue] != end) {
-                                list[maxValue] = end
-                            }
-                        }
+                        makeBoundaryList()
                     }
-                    // endregion
 
                     // Log.d("SEEKBAR_TOUCH", "RECT: 좌우 __ ${thumbRect?.left} ~ ${thumbRect?.right}, 상하 __ ${thumbRect?.top} ~ ${thumbRect?.bottom}")
                     if(thumbAvailable) {
@@ -200,10 +195,50 @@ class BitdamSeekBar: View {
 
                 MotionEvent.ACTION_UP -> {
                     thumbAvailable = false
+                    onReleaseListener?.invoke()
                     view.performClick()
                 }
             }
             true
         }
     }
+
+    fun setThumbLevel(level: Int) {
+        if(valueBoundaryList == null) {
+            makeBoundaryList()
+        }
+
+        val realLevel = maxValue - level
+
+        valueBoundaryList?.let { valueBoundaryList ->
+            thumbRect = Rect(
+                width / 2 - thumbRadius.toInt(),
+                (valueBoundaryList[realLevel] - top - thumbRadius).toInt(),
+                width / 2 + thumbRadius.toInt(),
+                (valueBoundaryList[realLevel] - top + thumbRadius).toInt()
+            )
+        }
+        onProgressChangeListener?.invoke(level)
+        invalidate()
+    }
+
+    private fun makeBoundaryList() {
+        valueBoundaryList = mutableListOf()
+
+        val start = top + verticalOffset
+        val end = bottom - verticalOffset
+        val interval = (end - start) / maxValue
+
+        for(i in minValue .. maxValue) {
+            valueBoundaryList?.add(start + interval * i)
+        }
+
+        valueBoundaryList?.let { list ->
+            if(list[maxValue] != end) {
+                list[maxValue] = end
+            }
+        }
+    }
+
+
 }
