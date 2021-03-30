@@ -8,6 +8,7 @@ import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 
 class BitdamSeekBar: View {
@@ -127,6 +128,7 @@ class BitdamSeekBar: View {
                     thumbRect?.let { thumbRect ->
                         if(thumbRect.contains(event.x.toInt(), event.y.toInt())) {
                             thumbAvailable = true
+                            onPressListener?.invoke()
                         }
                     }
 
@@ -178,9 +180,11 @@ class BitdamSeekBar: View {
                 }
 
                 MotionEvent.ACTION_UP -> {
+                    if(thumbAvailable) {
+                        onReleaseListener?.invoke()
+                        view.performClick()
+                    }
                     thumbAvailable = false
-                    onReleaseListener?.invoke()
-                    view.performClick()
                 }
             }
             true
