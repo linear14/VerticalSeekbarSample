@@ -6,12 +6,9 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.widget.Toast
 import androidx.core.content.ContextCompat
-import kotlin.math.min
 
 class BitdamSeekBar: View {
 
@@ -48,7 +45,7 @@ class BitdamSeekBar: View {
     private var valueBoundaryList: MutableList<Float>? = null
 
     private var defaultProgress: Int = 0
-    var progress: Int? = null
+    var firstProgress: Int? = null
 
     private var thumbRect: Rect? = null
     private var thumbAvailable = false
@@ -64,13 +61,10 @@ class BitdamSeekBar: View {
         maxValue = 200
         thumbAvailable = false
         isInit = true
-        // Log.d("SEEKBAR_TOUCH", "thumbRect: 좌우 __ ${left} ~ ${right}, 상하 __ ${top} ~ ${bottom}")
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-       /* val params = layoutParams as ConstraintLayout.LayoutParams
-        Log.d("SEEKBAR_LOGGER", "params height: ${params.height}")*/
 
         drawBar(canvas)
         drawThumb(canvas)
@@ -78,14 +72,12 @@ class BitdamSeekBar: View {
         activateThumbTouchListener()
 
         if(isInit) {
-            setThumbLevel(progress?:defaultProgress)
+            setThumbLevel(firstProgress?:defaultProgress)
             isInit = false
         }
     }
 
     private fun drawBar(canvas: Canvas) {
-        /*Log.d("SEEKBAR_LOGGER", "height: $height")
-        Log.d("SEEKBAR_LOGGER", "dpToPx: ${300.dpToPx()}")*/
         canvas.drawRect(
             width / 2 - 1f,
             verticalOffset,
@@ -131,31 +123,23 @@ class BitdamSeekBar: View {
         setOnTouchListener { view, event ->
             when(event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    // Log.d("SEEKBAR_TOUCH", "RECT: 좌우 __ ${thumbRect?.left} ~ ${thumbRect?.right}, 상하 __ ${thumbRect?.top} ~ ${thumbRect?.bottom}")
-                    // Log.d("SEEKBAR_TOUCH", "실제 클릭: x: ${event.x}, y: ${event.y}")
 
                     thumbRect?.let { thumbRect ->
                         if(thumbRect.contains(event.x.toInt(), event.y.toInt())) {
-                            Toast.makeText(context, "ACTION_DOWN", Toast.LENGTH_SHORT).show()
                             thumbAvailable = true
                         }
                     }
 
                 }
 
-                // 3.coerceIn(3..4)
                 MotionEvent.ACTION_MOVE -> {
                     if(valueBoundaryList == null) {
                         makeBoundaryList()
                     }
 
-                    // Log.d("SEEKBAR_TOUCH", "RECT: 좌우 __ ${thumbRect?.left} ~ ${thumbRect?.right}, 상하 __ ${thumbRect?.top} ~ ${thumbRect?.bottom}")
                     if(thumbAvailable) {
                         thumbRect?.let { thumbRect ->
                             var (x, y) = event.x to event.y + top
-
-                            // Log.d("SEEKBAR_TOUCH", "뷰의 상하 __ ${top} ~ ${bottom}")
-                            // Log.d("SEEKBAR_TOUCH", "실제 클릭: x: ${event.x}, y: ${event.y}")
 
                             if(y <= top + verticalOffset) {
                                 y = top + verticalOffset
